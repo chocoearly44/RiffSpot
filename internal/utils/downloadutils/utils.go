@@ -2,12 +2,13 @@ package downloadutils
 
 import (
 	"context"
-	"flag"
 	"fmt"
 	"github.com/raitonoberu/ytmusic"
+	"github.com/schollz/progressbar/v3"
 	ffmpeg_go "github.com/u2takey/ffmpeg-go"
 	"github.com/wader/goutubedl"
 	"github.com/zmb3/spotify/v2"
+	"io"
 	"log"
 	"math"
 )
@@ -36,32 +37,36 @@ func FindClosestMatch(spotifyTrack *spotify.PlaylistItemTrack) *ytmusic.TrackIte
 }
 
 func DownloadSong(youtubeId string, path string) {
+	log.SetOutput(io.Discard)
 	goutubedl.Path = "yt-dlp"
-
-	log.SetFlags(0)
-	flag.Parse()
 
 	result, err := goutubedl.New(
 		context.Background(),
 		youtubeId,
-		goutubedl.Options{Type: goutubedl.TypeSingle, DebugLog: log.Default()},
+		goutubedl.Options{Type: goutubedl.TypeSingle},
 	)
+
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	filter := "best"
-
-	dr, err := result.Download(context.Background(), filter)
+	dr, err := result.Download(context.Background(), "best")
 	if err != nil {
 		log.Fatal(err)
 	}
+
+	bar := progressbar.DefaultBytes(
+		int64(result.Info.FilesizeApprox),
+		"Downloading "+result.Info.Title,
+	)
 
 	com := ffmpeg_go.Input("pipe:").Audio().Output(path).Compile()
 	com.Stdin = dr
-
-	err = com.Run()
 	if err != nil {
 		fmt.Println("Error transcoding")
 	}
+	io.Copy(bar, dr)
+
+	err = com.Run()
+	bar.Close()
 }

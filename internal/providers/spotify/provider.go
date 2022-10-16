@@ -6,6 +6,7 @@ import (
 	spotifyauth "github.com/zmb3/spotify/v2/auth"
 	"golang.org/x/oauth2/clientcredentials"
 	"log"
+	"os"
 )
 
 func GetTracks(playlistId string) []spotify.PlaylistItemTrack {
@@ -13,8 +14,8 @@ func GetTracks(playlistId string) []spotify.PlaylistItemTrack {
 
 	ctx := context.Background()
 	config := &clientcredentials.Config{
-		ClientID:     "0de60a2720584b1bb3d83b4ed48fa395",
-		ClientSecret: "434adce2a93f4d5197f4f2565d0fcdfd",
+		ClientID:     os.Getenv("SPOTIFY_ID"),
+		ClientSecret: os.Getenv("SPOTIFY_SECRET"),
 		TokenURL:     spotifyauth.TokenURL,
 	}
 

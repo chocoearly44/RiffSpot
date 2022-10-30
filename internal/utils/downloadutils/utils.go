@@ -2,47 +2,16 @@ package downloadutils
 
 import (
 	"context"
-	"fmt"
-	"io"
-	"log"
-	"math"
-
-	"github.com/raitonoberu/ytmusic"
+	"github.com/bogem/id3v2/v2"
 	"github.com/schollz/progressbar/v3"
-	ffmpeg_go "github.com/u2takey/ffmpeg-go"
+	ffmpeggo "github.com/u2takey/ffmpeg-go"
 	"github.com/wader/goutubedl"
 	"github.com/zmb3/spotify/v2"
+	"io"
+	"log"
 )
 
-func FindClosestMatch(spotifyTrack *spotify.PlaylistItemTrack) *ytmusic.TrackItem {
-	searchString := fmt.Sprintf(
-		"%s - %s",
-		spotifyTrack.Track.Name,
-		spotifyTrack.Track.Artists[0].Name,
-	)
-
-	search := ytmusic.Search(searchString)
-	result, err := search.Next()
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	minDiff := math.Abs(float64(spotifyTrack.Track.Duration - result.Tracks[0].Duration))
-	closestTrack := result.Tracks[0]
-
-	for _, track := range result.Tracks {
-		diff := math.Abs(float64(spotifyTrack.Track.Duration - track.Duration))
-
-		if diff < minDiff {
-			minDiff = diff
-			closestTrack = track
-		}
-	}
-
-	return closestTrack
-}
-
-func DownloadSong(youtubeId string, outputPath string) {
+func DownloadSong(spotifyTrack *spotify.FullTrack, youtubeId string, outputPath string) {
 	log.SetOutput(io.Discard)
 	goutubedl.Path = "yt-dlp"
 
@@ -70,7 +39,7 @@ func DownloadSong(youtubeId string, outputPath string) {
 	defer progressBar.Close()
 
 	// Create ffmpeg audio extractor
-	ffmpegCmd := ffmpeg_go.Input("pipe:").Audio().Output(outputPath).Compile()
+	ffmpegCmd := ffmpeggo.Input("pipe:").Audio().Output(outputPath).Compile()
 
 	// Retrieve the standard input pipe of ffmpeg
 	ffmpegStdin, err := ffmpegCmd.StdinPipe()
@@ -87,4 +56,22 @@ func DownloadSong(youtubeId string, outputPath string) {
 	// Pipe youtube download stream to progress bar and ffmpeg
 	io.Copy(io.MultiWriter(progressBar, ffmpegStdin), downloadResult)
 
+	// Set metadata
+	tag, err := id3v2.Open(outputPath, id3v2.Options{Parse: false})
+
+	artists := ""
+	for i, artist := range spotifyTrack.Artists {
+		if i == len(spotifyTrack.Artists)-1 {
+			artists += artist.Name
+			continue
+		}
+
+		artists += artist.Name + ", "
+	}
+
+	tag.SetArtist(artists)
+	tag.SetTitle(spotifyTrack.Name)
+	tag.SetAlbum(spotifyTrack.Album.Name)
+	tag.SetYear(spotifyTrack.Album.ReleaseDate)
+	tag.Save()
 }

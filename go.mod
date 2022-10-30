@@ -3,6 +3,7 @@ module RiffSpot
 go 1.19
 
 require (
+	github.com/bogem/id3v2/v2 v2.1.3
 	github.com/raitonoberu/ytmusic v0.0.0-20220927155833-3d1de71caa11
 	github.com/schollz/progressbar/v3 v3.11.0
 	github.com/spf13/cobra v1.6.0
@@ -26,6 +27,7 @@ require (
 	golang.org/x/net v0.0.0-20220708220712-1185a9018129 // indirect
 	golang.org/x/sys v0.0.0-20221013171732-95e765b1cc43 // indirect
 	golang.org/x/term v0.0.0-20220919170432-7a66f970e087 // indirect
+	golang.org/x/text v0.3.7 // indirect
 	google.golang.org/appengine v1.6.7 // indirect
 	google.golang.org/protobuf v1.27.1 // indirect
 )
